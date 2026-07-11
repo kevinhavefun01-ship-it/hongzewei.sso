@@ -3,7 +3,7 @@ package application
 import (
 	"net/http"
 
-	"hzw.sso/internal/shared/errcode"
+	"hongzewei.sso/internal/shared/errcode"
 )
 
 // iam 上下文错误码(2000 段)。

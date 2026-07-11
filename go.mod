@@ -1,4 +1,4 @@
-module hzw.sso
+module hongzewei.sso
 
 go 1.26.2
 

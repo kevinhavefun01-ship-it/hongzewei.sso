@@ -9,8 +9,8 @@ import (
 	"io"
 	"net/http"
 
-	"hzw.sso/internal/shared/contextx"
-	"hzw.sso/internal/shared/errcode"
+	"hongzewei.sso/internal/shared/contextx"
+	"hongzewei.sso/internal/shared/errcode"
 
 	"github.com/gin-gonic/gin"
 )

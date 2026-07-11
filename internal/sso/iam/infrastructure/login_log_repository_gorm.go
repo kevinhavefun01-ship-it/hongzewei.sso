@@ -3,7 +3,7 @@ package infrastructure
 import (
 	"context"
 
-	"hzw.sso/internal/sso/iam/domain"
+	"hongzewei.sso/internal/sso/iam/domain"
 
 	"gorm.io/gorm"
 )

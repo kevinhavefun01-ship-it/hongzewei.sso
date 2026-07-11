@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"hzw.sso/internal/config"
+	"hongzewei.sso/internal/config"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

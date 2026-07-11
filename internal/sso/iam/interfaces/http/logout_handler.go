@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"hzw.sso/internal/sso/iam/infrastructure"
+	"hongzewei.sso/internal/sso/iam/infrastructure"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

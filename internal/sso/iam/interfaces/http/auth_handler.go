@@ -1,10 +1,10 @@
 package http
 
 import (
-	"hzw.sso/internal/shared/contextx"
-	"hzw.sso/internal/shared/errcode"
-	"hzw.sso/internal/shared/response"
-	"hzw.sso/internal/sso/iam/application"
+	"hongzewei.sso/internal/shared/contextx"
+	"hongzewei.sso/internal/shared/errcode"
+	"hongzewei.sso/internal/shared/response"
+	"hongzewei.sso/internal/sso/iam/application"
 
 	"github.com/gin-gonic/gin"
 )

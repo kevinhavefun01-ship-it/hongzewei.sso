@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"hzw.sso/internal/shared/errcode"
-	"hzw.sso/internal/sso/iam/domain"
-	"hzw.sso/internal/sso/iam/infrastructure"
+	"hongzewei.sso/internal/shared/errcode"
+	"hongzewei.sso/internal/sso/iam/domain"
+	"hongzewei.sso/internal/sso/iam/infrastructure"
 
 	"go.uber.org/zap"
 )

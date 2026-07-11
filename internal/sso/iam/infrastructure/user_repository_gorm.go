@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"hzw.sso/internal/sso/iam/domain"
+	"hongzewei.sso/internal/sso/iam/domain"
 
 	"gorm.io/gorm"
 )

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>统一登录 · hzw.sso</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .card {
+      width: 360px; background: #fff; border-radius: 14px; padding: 40px 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    .logo { text-align: center; margin-bottom: 8px; font-size: 26px; font-weight: 700; color: #333; }
+    .subtitle { text-align: center; color: #999; font-size: 13px; margin-bottom: 28px; }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; }
+    .field input {
+      width: 100%; height: 44px; padding: 0 14px; font-size: 15px;
+      border: 1px solid #ddd; border-radius: 8px; outline: none; transition: border-color .2s;
+    }
+    .field input:focus { border-color: #667eea; }
+    .btn {
+      width: 100%; height: 46px; margin-top: 8px; font-size: 16px; color: #fff; cursor: pointer;
+      background: linear-gradient(135deg, #667eea, #764ba2); border: none; border-radius: 8px;
+    }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .msg { margin-top: 16px; padding: 10px 12px; border-radius: 8px; font-size: 13px; display: none; }
+    .msg.error { display: block; background: #fdecea; color: #c0392b; }
+    .msg.ok { display: block; background: #d5f5e3; color: #1e8449; }
+    .foot { margin-top: 22px; text-align: center; color: #bbb; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">hzw.sso</div>
+    <div class="subtitle">基于 Ory Hydra 的统一单点登录</div>
+    <form id="loginForm">
+      <div class="field">
+        <label for="username">用户名</label>
+        <input id="username" name="username" type="text" autocomplete="username" required autofocus />
+      </div>
+      <div class="field">
+        <label for="password">密码</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+      </div>
+      <button class="btn" id="submitBtn" type="submit">登 录</button>
+    </form>
+    <div class="msg" id="msg"></div>
+    <div class="foot">© hzw.sso · Powered by Ory Hydra</div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const loginChallenge = params.get('login_challenge') || '';
+    const msgEl = document.getElementById('msg');
+    const btn = document.getElementById('submitBtn');
+
+    // 来自 consent/logout 失败重定向携带的错误码
+    const errCode = params.get('err');
+    if (errCode) showMsg('登录流程出错(错误码 ' + errCode + '),请重新登录。', 'error');
+
+    function showMsg(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = 'msg ' + type;
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      btn.disabled = true;
+      showMsg('登录中...', 'ok');
+      try {
+        const resp = await fetch('/api/sso/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+            login_challenge: loginChallenge,
+          }),
+        });
+        const data = await resp.json();
+        if (data.code !== 1) {
+          showMsg(data.message || '登录失败', 'error');
+          btn.disabled = false;
+          return;
+        }
+        const result = data.data || {};
+        // 处于 OAuth2 流程:跳回 Hydra 继续换取授权码
+        if (result.redirect_to) {
+          showMsg('登录成功,正在跳转...', 'ok');
+          location.href = result.redirect_to;
+          return;
+        }
+        // 直接访问登录页:保存管理态 token
+        if (result.token) localStorage.setItem('sso_token', result.token);
+        showMsg('登录成功。当前非应用发起的授权流程,已保存登录态。', 'ok');
+        btn.disabled = false;
+      } catch (err) {
+        showMsg('网络错误: ' + err.message, 'error');
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

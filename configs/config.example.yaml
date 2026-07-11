@@ -1,0 +1,43 @@
+# hzw.sso 配置示例
+# 复制为 config.yaml 后按需修改;config.yaml 已被 .gitignore 忽略,请勿提交真实密钥。
+
+app:
+  name: hzw.sso
+  # SSO 服务自身对外可访问地址(用于拼接登录页、回调地址)
+  base_url: http://localhost:8080
+  # HTTP 监听地址
+  addr: :8080
+
+sso:
+  hydra:
+    # Ory Hydra Admin API(v2.x,内网地址,切勿对公网暴露)
+    admin_url: http://localhost:4445
+    # Ory Hydra Public API(对外,浏览器会被重定向到这里发起 OAuth2 流程)
+    public_url: http://localhost:4444
+  jwt:
+    # 管理态 JWT 签名密钥,生产环境必须替换为高强度随机值
+    secret: change-me-please-use-a-long-random-secret
+    # 管理态 token 有效期(秒),默认 1 天
+    expire: 86400
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: root
+  database: sso
+  charset: utf8mb4
+
+redis:
+  addr: 127.0.0.1:6379
+  password: ""
+  db: 0
+
+log:
+  level: info          # debug / info / warn / error
+  format: json         # json / console
+  output: file         # file / stdout
+  file_path: logs/app.log
+  max_size: 100        # MB
+  max_backups: 7
+  max_age: 30          # 天

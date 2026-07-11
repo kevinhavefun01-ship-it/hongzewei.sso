@@ -1,0 +1,24 @@
+# 二进制 / 构建产物
+/server
+/bin/
+*.exe
+*.out
+build_err.txt
+
+# 本地配置与密钥(绝不提交;仅提交 *.example.yaml 与 config.docker.yaml)
+configs/config.yaml
+config.yaml
+.env
+
+# 日志与临时
+logs/
+tmp/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 依赖缓存
+vendor/

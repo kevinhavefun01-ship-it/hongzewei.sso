@@ -38,14 +38,14 @@
 - **Hydra**:只做协议引擎(授权码流、令牌签发),不存用户、不管密码
 - **hzw.sso**:实现 Login/Consent Provider,负责「谁在登录」(用户认证 + 授权同意)
 
-## 🚀 快速开始
+##  快速开始
 
 ### 方式一:Docker 一键启动(推荐)
 
 只需 Docker,无需安装任何其他依赖:
 
 ```bash
-git clone https://github.com/<你的用户名>/hongzewei.sso.git
+git clone https://github.com/kevinhavefun01-ship-it/hongzewei.sso.git
 cd hongzewei.sso
 
 # 一键启动全部服务(MySQL + Hydra + SSO) + 初始化种子数据
@@ -56,29 +56,13 @@ make dev-up
 >
 > 如需修改端口,直接编辑 `docker/docker-compose.yml` 对应的 ports 映射即可。
 
-### 方式二:本地开发(需 Go 环境)
+### 方式二:下载 Release 二进制
 
-```bash
-# 1. 起依赖(MySQL + Hydra)
-make docker-up
-
-# 2. 准备配置(复制 example 后按需修改)
-cp configs/config.example.yaml configs/config.yaml
-
-# 3. 编译并启动 SSO
-make run
-
-# 4. 另一个终端,初始化种子数据
-make seed
-```
-
-### 方式三:下载 Release 二进制
-
-前往 [Releases](https://github.com/<你的用户名>/hongzewei.sso/releases) 下载对应平台的预编译二进制,解压后:
+前往 [Releases](https://github.com/kevinhavefun01-ship-it/hongzewei.sso/releases) 下载对应平台的预编译二进制,解压后:
 
 ```bash
 # 1. 启动依赖(MySQL + Hydra)
-docker compose up -d
+cd docker && docker compose up -d && cd ..
 
 # 2. 初始化数据库 + 种子数据
 ./sso-server install -config configs/config.example.yaml

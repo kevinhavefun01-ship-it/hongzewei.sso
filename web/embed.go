@@ -7,3 +7,8 @@ import _ "embed"
 //
 //go:embed login.html
 var LoginHTML []byte
+
+// AdminHTML 管理页
+//
+//go:embed admin.html
+var AdminHTML []byte

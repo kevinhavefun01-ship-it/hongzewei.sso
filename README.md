@@ -40,52 +40,60 @@
 
 ## 🚀 快速开始
 
-### 1. 克隆 & 配置
+### 方式一:Docker 一键启动(推荐)
+
+只需 Docker,无需安装任何其他依赖:
 
 ```bash
 git clone https://github.com/<你的用户名>/hongzewei.sso.git
 cd hongzewei.sso
+
+# 一键启动全部服务(MySQL + Hydra + SSO) + 初始化种子数据
+make dev-up
+```
+
+> 默认端口:SSO `:8080` · Hydra Public `:4446` · Hydra Admin `:4447` · MySQL `:3307`
+>
+> 如需修改端口,直接编辑 `docker/docker-compose.yml` 对应的 ports 映射即可。
+
+### 方式二:本地开发(需 Go 环境)
+
+```bash
+# 1. 起依赖(MySQL + Hydra)
+make docker-up
+
+# 2. 准备配置(复制 example 后按需修改)
 cp configs/config.example.yaml configs/config.yaml
-# 编辑 config.yaml,至少修改:
-# - app.base_url: SSO 服务对外地址
-# - sso.hydra.admin_url: Hydra Admin API 地址(内网)
-# - sso.jwt.secret: 管理态 JWT 密钥(生产必须替换)
-# - mysql / redis 连接信息
+
+# 3. 编译并启动 SSO
+make run
+
+# 4. 另一个终端,初始化种子数据
+make seed
 ```
 
-### 2. 启动依赖(Hydra + MySQL + Redis)
+### 方式三:下载 Release 二进制
+
+前往 [Releases](https://github.com/<你的用户名>/hongzewei.sso/releases) 下载对应平台的预编译二进制,解压后:
 
 ```bash
-cd deploy
+# 1. 启动依赖(MySQL + Hydra)
 docker compose up -d
+
+# 2. 初始化数据库 + 种子数据
+./sso-server install -config configs/config.example.yaml
+
+# 3. 启动服务
+./sso-server -config configs/config.example.yaml
 ```
 
-> `deploy/docker-compose.yml` 会拉起:
-> - `hydra`:Ory Hydra v2 授权服务器(Admin API `:4445`,Public API `:4444`)
-> - `hydra-migrate`:Hydra 数据库初始化
-> - `mysql:5.7`:Hydra + hzw.sso 共享
-> - `redis:7`:登录日志限流
-
-### 3. 初始化种子数据
-
-```bash
-bash scripts/seed.sh
-# 默认创建:
-# - admin 用户(用户名:admin, 密码:admin123, 管理员)
-# - demo-client OAuth Client(client_id:demo-app, client_secret:demo-secret)
-```
-
-### 4. 启动 SSO 服务
-
-```bash
-bash scripts/run.sh
-# 或手动:
-go run cmd/server/main.go
-```
-
-### 5. 验证
+### 验证
 
 浏览器访问 `http://localhost:8080/login`,看到登录页即成功。
+
+- 管理员账号:`admin` / `admin123`
+- 管理后台:`http://localhost:8080/admin`
+- demo OAuth Client:`demo-app` / `demo-secret`
 
 ## 📡 API
 
@@ -120,7 +128,7 @@ go run cmd/server/main.go
 
 ```
 hongzewei.sso/
-├── cmd/server/          # 入口
+├── cmd/                 # 入口(server + seed_hash)
 ├── internal/
 │   ├── config/          # 配置加载
 │   ├── shared/          # 跨模块公共:response / errcode / middleware / jwtx
@@ -131,11 +139,34 @@ hongzewei.sso/
 │           ├── application/     # 应用层(auth/consent/user service)
 │           ├── infrastructure/  # 基础设施(Hydra client + GORM 仓储)
 │           └── interfaces/http/ # 接口层(handler)
-├── web/                 # 内嵌前端(go:embed)
-├── deploy/              # docker-compose(Hydra + MySQL + Redis)
-├── scripts/             # run/seed 脚本
-├── configs/             # 配置样例
-└── docs/                # 正式文档
+── web/                 # 内嵌前端(go:embed)
+├── examples/            # Demo 子应用(app-a / app-b)
+├├── docker/              # Docker 相关(Dockerfile + docker-compose)
+├── migration/           # 数据库初始化脚本
+├── configs/             # 配置样例 + Docker 配置
+├── docs/                # 正式文档
+├── Makefile             # 统一构建入口
+├── Dockerfile           # 多阶段构建
+├── .goreleaser.yml      # GitHub Releases 自动发版
+├── .github/workflows/   # GitHub Actions CI
+└── .golangci.yml        # 代码质量门禁
+```
+
+## 🛠️ Make 命令
+
+> **Windows 用户**: 使用 `mingw32-make` 替代 `make`(已随 Git Bash / TDM-GCC 安装)
+
+```bash
+make build        # 编译二进制        (Windows: mingw32-make build)
+make run          # 编译并启动
+make test         # 单元测试(-race)
+make lint         # 代码质量检查
+make docker-up    # 启动依赖(MySQL + Hydra + SSO)
+make docker-down  # 停止依赖
+make seed         # 初始化种子数据
+make dev-up       # 一键启动(依赖 + 种子)
+make clean        # 清理构建产物
+make help         # 显示所有命令
 ```
 
 ## 🔒 安全设计
@@ -151,13 +182,34 @@ hongzewei.sso/
 |------|------|
 | 语言 | Go 1.26 |
 | Web 框架 | Gin |
-| ORM | GORM |
-| 缓存 | go-redis v9 |
+| ORM | GORM + MySQL 8.0 |
+| 缓存 | go-redis v9(可选) |
 | **授权服务器** | **Ory Hydra v2** |
 | JWT | golang-jwt/jwt v5 |
 | 配置 | viper |
 | 日志 | zap + lumberjack |
 | HTTP Client | resty v2 |
+| 容器化 | Docker 多阶段构建 |
+| CI | GitHub Actions + golangci-lint |
+
+## 📦 发版(Releases)
+
+本项目使用 [GoReleaser](https://goreleaser.com/) 自动构建多平台二进制并推送 GitHub Releases。
+
+推送 tag 后 GitHub Actions 会自动触发:
+
+```bash
+git tag -a v0.1.0 -m "first release"
+git push origin v0.1.0
+```
+
+发布产物包括:
+- `sso-server_*_linux_amd64.tar.gz`
+- `sso-server_*_linux_arm64.tar.gz`
+- `sso-server_*_darwin_amd64.tar.gz`
+- `sso-server_*_darwin_arm64.tar.gz`
+- `sso-server_*_windows_amd64.zip`
+- Docker 镜像自动推送
 
 ## 🤝 贡献
 

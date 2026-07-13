@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理后台 · hzw.sso</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: #f5f7fa; color: #333; }
+    .header { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 20px; }
+    .header .user-info { font-size: 14px; }
+    .header button { margin-left: 12px; padding: 6px 16px; background: rgba(255,255,255,.2); color: #fff; border: 1px solid rgba(255,255,255,.4); border-radius: 6px; cursor: pointer; }
+    .container { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+    .tabs { display: flex; gap: 0; margin-bottom: 20px; }
+    .tab { padding: 10px 24px; background: #fff; border: 1px solid #ddd; cursor: pointer; font-size: 14px; }
+    .tab:first-child { border-radius: 8px 0 0 8px; }
+    .tab:last-child { border-radius: 0 8px 8px 0; }
+    .tab.active { background: #667eea; color: #fff; border-color: #667eea; }
+    .panel { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .btn-add { padding: 8px 20px; background: #667eea; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #fafafa; font-weight: 600; color: #555; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+    .badge.ok { background: #d5f5e3; color: #1e8449; }
+    .badge.no { background: #fdecea; color: #c0392b; }
+    .actions button { margin-right: 6px; padding: 4px 12px; border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer; font-size: 12px; }
+    .actions button.danger { color: #c0392b; border-color: #f5c6cb; }
+
+    /* 模态框 */
+    .modal-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
+    .modal-mask.show { display: flex; }
+    .modal { background: #fff; border-radius: 12px; padding: 28px; width: 400px; max-width: 90vw; }
+    .modal h3 { margin-bottom: 20px; font-size: 18px; }
+    .modal label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; margin-top: 12px; }
+    .modal input, .modal select { width: 100%; height: 38px; padding: 0 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    .modal .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+    .modal .checkbox-row input { width: auto; }
+    .modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+    .modal-btns button { padding: 8px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; }
+    .modal-btns .cancel { background: #eee; }
+    .modal-btns .confirm { background: #667eea; color: #fff; }
+    .msg-bar { padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; display: none; }
+    .msg-bar.error { display: block; background: #fdecea; color: #c0392b; }
+    .msg-bar.ok { display: block; background: #d5f5e3; color: #1e8449; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>hzw.sso 管理后台</h1>
+    <div class="user-info">
+      <span id="current-user"></span>
+      <button onclick="logout()">退出登录</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('users')">用户管理</div>
+      <div class="tab" onclick="switchTab('clients')">客户端管理</div>
+    </div>
+
+    <!-- 用户管理 -->
+    <div class="panel" id="panel-users">
+      <div class="msg-bar" id="user-msg"></div>
+      <div class="toolbar">
+        <span>共 <span id="user-total">0</span> 个用户</span>
+        <button class="btn-add" onclick="showUserModal()">+ 新建用户</button>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>用户名</th><th>姓名</th><th>管理员</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody id="user-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- 客户端管理 -->
+    <div class="panel" id="panel-clients" style="display:none">
+      <div class="msg-bar" id="client-msg"></div>
+      <div class="toolbar">
+        <span>OAuth2 客户端(Hydra)</span>
+        <button class="btn-add" onclick="showClientModal()">+ 新建客户端</button>
+      </div>
+      <table>
+        <thead><tr><th>Client ID</th><th>名称</th><th>Scope</th><th>操作</th></tr></thead>
+        <tbody id="client-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 用户模态框 -->
+  <div class="modal-mask" id="user-modal">
+    <div class="modal">
+      <h3 id="user-modal-title">新建用户</h3>
+      <input type="hidden" id="user-edit-id" />
+      <label>用户名</label>
+      <input id="f-username" placeholder="登录用户名" />
+      <label>密码</label>
+      <input id="f-password" type="password" placeholder="至少 6 位" />
+      <label>姓名</label>
+      <input id="f-realname" placeholder="可选" />
+      <div class="checkbox-row">
+        <input type="checkbox" id="f-isadmin" />
+        <label for="f-isadmin" style="margin:0">管理员</label>
+      </div>
+      <div class="modal-btns">
+        <button class="cancel" onclick="closeModal('user-modal')">取消</button>
+        <button class="confirm" onclick="submitUser()">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 客户端模态框 -->
+  <div class="modal-mask" id="client-modal">
+    <div class="modal">
+      <h3>新建 OAuth2 客户端</h3>
+      <label>客户端名称</label>
+      <input id="c-name" placeholder="如:demo-app" />
+      <label>回调地址(每行一个)</label>
+      <input id="c-redirect" placeholder="http://localhost:5001/callback" />
+      <div class="modal-btns">
+        <button class="cancel" onclick="closeModal('client-modal')">取消</button>
+        <button class="confirm" onclick="submitClient()">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api/sso/v1';
+    const token = localStorage.getItem('sso_token');
+    if (!token) { location.href = '/login'; }
+
+    const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+
+    async function api(path, opts) {
+      const resp = await fetch(API + path, Object.assign({ headers }, opts || {}));
+      const data = await resp.json();
+      if (data.code !== 1) throw new Error(data.message || '请求失败');
+      return data.data;
+    }
+
+    // ── 加载当前用户 ──
+    async function loadMe() {
+      try {
+        const u = await api('/users/me');
+        document.getElementById('current-user').textContent = u.username + (u.is_admin ? ' (管理员)' : '');
+        if (!u.is_admin) {
+          document.querySelector('.container').innerHTML = '<div class="panel">无管理员权限,无法访问。</div>';
+        }
+      } catch (e) {
+        if (e.message.includes('未登录') || e.message.includes('过期')) {
+          localStorage.removeItem('sso_token');
+          location.href = '/login';
+        }
+      }
+    }
+
+    // ── 用户列表 ──
+    async function loadUsers() {
+      try {
+        const data = await api('/admin/users?page=1&page_size=100');
+        document.getElementById('user-total').textContent = data.total;
+        const tbody = document.getElementById('user-tbody');
+        tbody.innerHTML = (data.list || []).map(u => `
+          <tr>
+            <td>${u.id}</td>
+            <td>${u.username}</td>
+            <td>${u.real_name || '-'}</td>
+            <td><span class="badge ${u.is_admin ? 'ok' : 'no'}">${u.is_admin ? '是' : '否'}</span></td>
+            <td><span class="badge ${u.is_active ? 'ok' : 'no'}">${u.is_active ? '启用' : '禁用'}</span></td>
+            <td class="actions">
+              <button onclick="editUser(${u.id},'${u.username}','${u.real_name||''}',${u.is_admin},${u.is_active})">编辑</button>
+              <button onclick="resetPwd(${u.id},'${u.username}')">重置密码</button>
+              <button class="danger" onclick="deleteUser(${u.id},'${u.username}')">删除</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) { showMsg('user-msg', e.message, 'error'); }
+    }
+
+    function showUserModal() {
+      document.getElementById('user-modal-title').textContent = '新建用户';
+      document.getElementById('user-edit-id').value = '';
+      document.getElementById('f-username').value = '';
+      document.getElementById('f-username').disabled = false;
+      document.getElementById('f-password').value = '';
+      document.getElementById('f-realname').value = '';
+      document.getElementById('f-isadmin').checked = false;
+      document.getElementById('user-modal').classList.add('show');
+    }
+
+    function editUser(id, username, realname, isAdmin, isActive) {
+      document.getElementById('user-modal-title').textContent = '编辑用户 #' + id;
+      document.getElementById('user-edit-id').value = id;
+      document.getElementById('f-username').value = username;
+      document.getElementById('f-username').disabled = true;
+      document.getElementById('f-password').value = '';
+      document.getElementById('f-realname').value = realname;
+      document.getElementById('f-isadmin').checked = isAdmin;
+      document.getElementById('user-modal').classList.add('show');
+    }
+
+    async function submitUser() {
+      const id = document.getElementById('user-edit-id').value;
+      const body = {};
+      if (id) {
+        body.real_name = document.getElementById('f-realname').value;
+        body.is_admin = document.getElementById('f-isadmin').checked;
+        body.is_active = true;
+        try {
+          await api('/admin/users/' + id, { method: 'PUT', body: JSON.stringify(body) });
+          showMsg('user-msg', '更新成功', 'ok');
+        } catch (e) { showMsg('user-msg', e.message, 'error'); return; }
+      } else {
+        body.username = document.getElementById('f-username').value;
+        body.password = document.getElementById('f-password').value;
+        body.real_name = document.getElementById('f-realname').value;
+        body.is_admin = document.getElementById('f-isadmin').checked;
+        if (!body.username || !body.password) { showMsg('user-msg', '用户名和密码不能为空', 'error'); return; }
+        try {
+          await api('/admin/users', { method: 'POST', body: JSON.stringify(body) });
+          showMsg('user-msg', '创建成功', 'ok');
+        } catch (e) { showMsg('user-msg', e.message, 'error'); return; }
+      }
+      closeModal('user-modal');
+      loadUsers();
+    }
+
+    async function deleteUser(id, username) {
+      if (!confirm('确定删除用户 "' + username + '"?')) return;
+      try {
+        await api('/admin/users/' + id, { method: 'DELETE' });
+        showMsg('user-msg', '已删除', 'ok');
+        loadUsers();
+      } catch (e) { showMsg('user-msg', e.message, 'error'); }
+    }
+
+    async function resetPwd(id, username) {
+      const pwd = prompt('为 "' + username + '" 设置新密码(至少 6 位):');
+      if (!pwd) return;
+      try {
+        await api('/admin/users/' + id + '/reset-password', { method: 'POST', body: JSON.stringify({ new_password: pwd }) });
+        showMsg('user-msg', '密码已重置,用户下次登录需修改密码', 'ok');
+      } catch (e) { showMsg('user-msg', e.message, 'error'); }
+    }
+
+    // ── 客户端 ──
+    function showClientModal() { document.getElementById('client-modal').classList.add('show'); }
+
+    async function submitClient() {
+      const name = document.getElementById('c-name').value;
+      const redirect = document.getElementById('c-redirect').value.trim();
+      if (!name || !redirect) { showMsg('client-msg', '名称和回调地址不能为空', 'error'); return; }
+      try {
+        const client = await api('/admin/clients', {
+          method: 'POST',
+          body: JSON.stringify({
+            client_name: name,
+            redirect_uris: redirect.split('\n').filter(Boolean),
+          }),
+        });
+        showMsg('client-msg', '创建成功! client_secret: ' + (client.client_secret || '(未返回,请检查 Hydra)'), 'ok');
+        closeModal('client-modal');
+        document.getElementById('c-name').value = '';
+        document.getElementById('c-redirect').value = '';
+      } catch (e) { showMsg('client-msg', e.message, 'error'); }
+    }
+
+    async function deleteClient(id) {
+      if (!confirm('确定删除客户端 "' + id + '"?')) return;
+      try {
+        await api('/admin/clients/' + id, { method: 'DELETE' });
+        showMsg('client-msg', '已删除', 'ok');
+      } catch (e) { showMsg('client-msg', e.message, 'error'); }
+    }
+
+    // ── 通用 ──
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('panel-users').style.display = tab === 'users' ? '' : 'none';
+      document.getElementById('panel-clients').style.display = tab === 'clients' ? '' : 'none';
+    }
+
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+    function showMsg(elId, text, type) {
+      const el = document.getElementById(elId);
+      el.textContent = text;
+      el.className = 'msg-bar ' + type;
+      setTimeout(() => { el.className = 'msg-bar'; }, 5000);
+    }
+
+    async function logout() {
+      try { await api('/auth/logout', { method: 'POST' }); } catch (_) {}
+      localStorage.removeItem('sso_token');
+      location.href = '/login';
+    }
+
+    loadMe();
+    loadUsers();
+  </script>
+</body>
+</html>

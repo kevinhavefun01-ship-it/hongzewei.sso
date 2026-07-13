@@ -1,0 +1,35 @@
+# 构建产物
+bin/
+*.exe
+*.out
+
+# 本地配置(绝不进入镜像)
+configs/config.yaml
+.env
+
+# 日志与临时
+logs/
+tmp/
+
+# Git
+.git/
+.github/
+
+# IDE
+.idea/
+.vscode/
+
+# 文档(不进入运行镜像)
+discuss/
+docs/
+*.md
+
+# 测试
+*_test.go
+
+# Docker 自身
+docker/
+migration/
+
+# 依赖缓存
+vendor/

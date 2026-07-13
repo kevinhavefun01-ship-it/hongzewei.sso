@@ -1,0 +1,47 @@
+# golangci-lint 配置
+# 文档: https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 3m
+  go: "1.26"
+
+linters:
+  enable:
+    - errcheck       # 检查未处理的 error
+    - gosimple       # 代码简化建议
+    - govet          # 官方 vet 检查
+    - ineffassign    # 无效赋值
+    - staticcheck    # 静态分析
+    - unused         # 未使用代码
+    - gocritic       # 代码风格
+    - gofmt          # 格式化
+    - misspell       # 拼写错误
+    - revive         # 替代 golint
+    - unconvert      # 不必要的类型转换
+    - whitespace     # 多余空行
+
+linters-settings:
+  govet:
+    enable-all: false
+    disable:
+      - fieldalignment  # 过于严格,MVP 阶段跳过
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+  revive:
+    rules:
+      - name: exported
+        disabled: true  # MVP 阶段不强制注释
+
+issues:
+  exclude-rules:
+    # 测试文件放宽限制
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gocritic
+    # 生成的代码跳过
+    - path: \.pb\.go
+      linters:
+        - all

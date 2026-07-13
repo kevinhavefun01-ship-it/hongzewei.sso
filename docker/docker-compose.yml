@@ -1,0 +1,104 @@
+# hzw.sso 本地开发环境 docker-compose
+# 启动: make docker-up
+# 停止: make docker-down
+#
+# 默认端口:
+#   SSO:          8080
+#   Hydra Public: 4446
+#   Hydra Admin:  4447
+#   MySQL:        3307
+#
+# 如需修改端口,直接编辑本文件对应的 ports 映射即可。
+
+services:
+  # ──── MySQL 8.0(Hydra v2 migration 需要 8.0+) ────
+  mysql:
+    image: mysql:8.0
+    container_name: hzw-sso-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: sso
+      TZ: Asia/Shanghai
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ──── Hydra 数据库初始化 ────
+  hydra-migrate:
+    image: oryd/hydra:v2.2.0
+    container_name: hzw-sso-hydra-migrate
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: migrate sql -e --yes
+    environment:
+      DSN: mysql://root:rootpass@tcp(mysql:3306)/hydra?max_conns=20&max_idle_conns=4
+    restart: on-failure
+
+  # ──── Ory Hydra v2 ────
+  hydra:
+    image: oryd/hydra:v2.2.0
+    container_name: hzw-sso-hydra
+    restart: unless-stopped
+    command: serve all --dev
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
+    ports:
+      - "4446:4444"
+      - "4447:4445"
+    environment:
+      DSN: mysql://root:rootpass@tcp(mysql:3306)/hydra?max_conns=20&max_idle_conns=4
+      SECRETS_SYSTEM: you-MUST-change-this-in-production-please
+      URLS_SELF_ISSUER: http://localhost:4446/
+      URLS_PUBLIC: http://localhost:4446/
+      URLS_LOGIN: http://localhost:8080/login
+      URLS_CONSENT: http://localhost:8080/api/sso/v1/hydra/consent
+      URLS_LOGOUT: http://localhost:8080/api/sso/v1/hydra/logout
+      SERVE_PUBLIC_PORT: "4444"
+      SERVE_ADMIN_PORT: "4445"
+      LOG_LEVEL: info
+      SERVE_DEV: "true"
+    healthcheck:
+      test: ["CMD", "hydra", "status", "ready", "--endpoint", "http://localhost:4445/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ──── hzw.sso 应用服务 ────
+  sso:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: hzw-sso-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../configs/config.docker.yaml:/app/configs/config.yaml:ro
+    environment:
+      TZ: Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  mysql_data:

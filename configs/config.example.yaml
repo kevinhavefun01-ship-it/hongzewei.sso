@@ -11,9 +11,9 @@ app:
 sso:
   hydra:
     # Ory Hydra Admin API(v2.x,内网地址,切勿对公网暴露)
-    admin_url: http://localhost:4445
+    admin_url: http://localhost:4447
     # Ory Hydra Public API(对外,浏览器会被重定向到这里发起 OAuth2 流程)
-    public_url: http://localhost:4444
+    public_url: http://localhost:4446
   jwt:
     # 管理态 JWT 签名密钥,生产环境必须替换为高强度随机值
     secret: change-me-please-use-a-long-random-secret

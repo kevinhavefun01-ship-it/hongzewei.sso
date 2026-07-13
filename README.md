@@ -71,6 +71,37 @@ cd docker && docker compose up -d && cd ..
 ./sso-server -config configs/config.example.yaml
 ```
 
+### 方式三:Docker 容器部署
+
+```bash
+# 1. 启动 MySQL + Hydra
+cd docker && docker compose up -d mysql hydra hydra-migrate && cd ..
+
+# 2. 初始化数据库
+docker run --rm --network host \
+  -e HSW_MYSQL_HOST=127.0.0.1 \
+  -e HSW_MYSQL_PORT=3307 \
+  -e HSW_MYSQL_USER=root \
+  -e HSW_MYSQL_PASSWORD=rootpass \
+  -e HSW_MYSQL_DATABASE=sso \
+  -e HSW_SSO_HYDRA_ADMIN_URL=http://localhost:4447 \
+  kevinhavefun01/hzw-sso:latest install
+
+# 3. 启动服务
+docker run -d --name hzw-sso --network host \
+  -e HSW_MYSQL_HOST=127.0.0.1 \
+  -e HSW_MYSQL_PORT=3307 \
+  -e HSW_MYSQL_USER=root \
+  -e HSW_MYSQL_PASSWORD=rootpass \
+  -e HSW_MYSQL_DATABASE=sso \
+  -e HSW_SSO_HYDRA_ADMIN_URL=http://localhost:4447 \
+  -e HSW_SSO_JWT_SECRET=your-secret-key-here \
+  kevinhavefun01/hzw-sso:latest
+```
+
+> 环境变量命名规则:`HSW_` + 配置键名(大写,点号/下划线分隔)
+> 完整环境变量列表见 `configs/config.example.yaml`
+
 ### 验证
 
 浏览器访问 `http://localhost:8080/login`,看到登录页即成功。

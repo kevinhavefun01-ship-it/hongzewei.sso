@@ -3,6 +3,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -80,8 +82,16 @@ type LogConfig struct {
 }
 
 // Load 从指定路径加载配置文件。path 为空时按默认查找 configs/config.yaml。
+// 环境变量可覆盖配置文件中的值(12-Factor 风格,便于 Docker 部署)。
+// 环境变量命名规则:前缀 HSW_ + 大写键名(点号/下划线分隔),如 HSW_MYSQL_HOST。
 func Load(path string) (*Config, error) {
 	v := viper.New()
+
+	// ──── 环境变量支持 ────
+	v.SetEnvPrefix("HSW")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
+
 	if path != "" {
 		v.SetConfigFile(path)
 	} else {
@@ -91,7 +101,13 @@ func Load(path string) (*Config, error) {
 		v.AddConfigPath(".")
 	}
 	if err := v.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("读取配置文件失败: %w", err)
+		// 配置文件不存在时,如果必要的环境变量已设置,则允许继续
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			// 文件存在但解析失败,报错
+			if !os.IsNotExist(err) {
+				return nil, fmt.Errorf("解析配置文件失败: %w", err)
+			}
+		}
 	}
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {

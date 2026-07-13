@@ -38,9 +38,6 @@ WORKDIR /app
 COPY --from=builder /sso-server .
 COPY --from=builder /src/configs/config.example.yaml ./configs/config.yaml
 
-# seed_hash 工具(容器内可选用)
-COPY --from=builder /src/cmd/seed_hash/ ./cmd/seed_hash/
-
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \

@@ -69,7 +69,7 @@ services:
       LOG_LEVEL: info
       SERVE_DEV: "true"
     healthcheck:
-      test: ["CMD", "hydra", "status", "ready", "--endpoint", "http://localhost:4445/"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:4445/health/ready"]
       interval: 10s
       timeout: 5s
       retries: 10

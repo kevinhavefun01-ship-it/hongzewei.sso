@@ -52,16 +52,12 @@ docker-down: ## docker compose 停止全部服务
 docker-logs: ## 查看容器日志
 	cd docker && docker compose logs -f
 
-# ─── 数据 ────
+# ─── 数据 ───
 
 .PHONY: seed
 seed: build ## 初始化种子数据(admin + demo client,需 MySQL 已启动)
 	@echo "==> 等待 MySQL 就绪..."
-	@for i in $$(seq 1 30); do \
-		if $(DOCKER) exec -i hzw-sso-mysql mysqladmin ping -h localhost -uroot -prootpass > /dev/null 2>&1; then echo "    MySQL 已就绪"; break; fi; \
-		if [ "$$i" -eq 30 ]; then echo "    错误: MySQL 30 秒内未就绪,请先 make docker-up"; exit 1; fi; \
-		sleep 1; \
-	done
+	@sleep 5
 	@./bin/sso-server install -config configs/config.yaml
 
 .PHONY: dev-up
